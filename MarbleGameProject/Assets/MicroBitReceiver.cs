@@ -1,53 +1,41 @@
 using UnityEngine;
 using System.IO.Ports;
 
+[RequireComponent(typeof(SerialDecoder))] // Reference to SerialDecoder
 public class MicroBitReceiver : MonoBehaviour
 {
-    SerialPort stream = new SerialPort("COM3", 9600); // Adjust the COM port and baud rate as per your micro:bit configuration
+    public string receivedTransmission;
+    private SerialDecoder decoder; // Reference to SerialDecoder
 
-    void Start()
+    private void Awake()
     {
-        stream.Open();
-        stream.ReadTimeout = 100;
+        decoder = GetComponent<SerialDecoder>(); // Reference to SerialDecoder
     }
 
-    void Update()
+    // Invoked when a line of data is received from the serial device.
+    void OnMessageArrived(string msg)
     {
-        try
-        {
-            string data = stream.ReadLine();
-            if (data != null)
-            {
-                // Parse the received data and log it
-                string[] parts = data.Split(';');
-                string axis = parts[0];
-                float value = float.Parse(parts[1]);
-
-                Debug.Log("Received data - Axis: " + axis + ", Value: " + value);
-
-                // Example: Adjust rotation of a GameObject based on received data
-                if (axis == "X")
-                {
-                    transform.Rotate(Vector3.right, value);
-                }
-                else if (axis == "Y")
-                {
-                    transform.Rotate(Vector3.up, value);
-                }
-                else if (axis == "Z")
-                {
-                    transform.Rotate(Vector3.forward, value);
-                }
-            }
-        }
-        catch (System.Exception)
-        {
-            // Handle exceptions if any
-        }
+        Debug.Log(msg);
+        receivedTransmission = msg;
+        ParseString(msg);
     }
 
-    void OnDestroy()
+    // Invoked when a connect/disconnect event occurs. The parameter 'success'
+    // will be 'true' upon connection, and 'false' upon disconnection or
+    // failure to connect.
+    void OnConnectionEvent(bool success)
     {
-        stream.Close(); // Close the serial port when the script is destroyed
+        Debug.Log(success ? "Device connected" : "Device disconnected");
+    }
+
+    public void ParseString(string input)
+    {
+        decoder.Parse(input); // Call Parse method of SerialDecoder
+    }
+
+    [ContextMenu("Parse")]
+    public void TestString()
+    {
+        ParseString(receivedTransmission);
     }
 }
